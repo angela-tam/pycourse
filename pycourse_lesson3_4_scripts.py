@@ -113,7 +113,7 @@ def encode(col, code_dict=None):
             net.append(val)
     if len(net) > 0:
         print('the following values were not assigned labels:')
-        for miss in net.unique():
+        for miss in set(net):
             print(miss)
     
     return col
@@ -774,105 +774,105 @@ def j_chi(x,y):
     
     return chi,p
 
-def multivar_miner(tstcols,data,only_binary_ivs=True,verbose=False):
-	
-	rdf,dvs,ivs,col_dir = prep_frame(tstcols,data)
-	if not only_binary_ivs:
-		ivs = rdf.columns
+#def multivar_miner(tstcols,data,only_binary_ivs=True,verbose=False):
 
-    if not verbose:
-    	associations = []
-
-	done = []
-	for i,dv_col in enumerate(dvs):
-	    print('working on DV %s of %s'%(i,len(dvs)))
-	    dv = data[dv_col]
-	    for iva_col in ivs:
-	        if iva_col == dv_col:
-	            continue
-	        if (iva_col,dv_col) in done:
-	            continue
-	        else:
-	            done.append((dv_col,iva_col))
-	        iva = data[iva_col]
-	        for ivb_col in ivs:
-	            if ivb_col == iva_col or ivb_col == dv_col:
-	                continue
-	            if (dv_col,ivb_col,iva_col) in done:
-	                continue
-	            else:
-	                done.append((dv_col,iva_col,ivb_col))
-	            ivb = data[ivb_col]
-	            inter,changer = multivariate_test(dv,iva,ivb,data)
-	            if inter:
-	            	assos = '>>>>Interaction: %s      vs     %s    on    %s <<<<<<<<<'%
-	                          (col_dir[iva_col], col_dir[ivb_col], col_dir[dv_col])
-	            	if verbose:
-	                	print('\n',assoc)
-	                else:
-	                	associations.append(assos)
-	            if changer:
-	            	assos = '*****Change: %s     vs     %s     on     %s'%
-	                         (col_dir[iva_col],col_dir[ivb_col],col_dir[dv_col])
-	            	if verbose:
-	                	print('\n',assoc)
-	                else:
-	                	associations.append(assos)
-	if not verbose:
-		return(associations)
-    
-
-def prep_frame(tstcols,data):
-    
-    # make new frame of only tstcols
-    rdf = deepcopy(data[tstcols])
-    
-    # fix headers
-    ncols = []
-    col_dir = {}
-    for col in tstcols:
-        ncols.append(col[:14])
-        col_dir.update({col[:14]:col})
-    rdf.columns = ncols
-    
-    # find feasable dependent variables
-    dvs = []
-    for col in rdf.columns:
-        if rdf[col].dtype == 'float64' and len(rdf[col].unique()) > 4:
-            dvs.append(col)
-            
-    # find feasible independent variable (in case user specifies)
-    ivs = []
-    for col in rdf.columns:
-    	if rdf[col].dtype == 'O' and len(rdf[col].unique()) < 4:
-    		ivs.append(col)
-    
-    # encode categorical variables
-    for col in rdf.columns:
-        if rdf[col].dtype == 'O':
-            rdf[col] = us.encode(rdf[col]).astype(float)
-    
-    
-    return rdf,dvs,ivs,col_dir
-
-def multivariate_test(dv,iva,ivb,data):
-    
-    inter=False
-    changer=False
-    
-    tsta_p = smf.ols('dv ~ iva',data=data).fit().pvalues[1]
-    tstb_p = smf.ols('dv ~ ivb',data=data).fit().pvalues[1]
-    
-    tstmv_ps = smf.ols('dv ~ iva + ivb',data=data).fit().pvalues
-    
-    if tsta_p > 0.05 and tstmv_ps[1] < 0.05:
-        changer=True
-    if tstb_p > 0.05 and tstmv_ps[2] < 0.05:
-        changer = True
-    
-    tstint_ps = smf.ols('dv ~ iva * ivb',data=data).fit().pvalues[-1]
-    if tstint_ps < 0.05:
-        inter = True
-    
-    return inter,changer
-
+#    rdf,dvs,ivs,col_dir = prep_frame(tstcols,data)
+#    if not only_binary_ivs:
+#        ivs = rdf.columns
+#
+#    if not verbose:
+#        associations = []
+#
+#    done = []
+#    for i,dv_col in enumerate(dvs):
+#        print('working on DV %s of %s'%(i,len(dvs)))
+#        dv = data[dv_col]
+#        for iva_col in ivs:
+#            if iva_col == dv_col:
+#                continue
+#            if (iva_col,dv_col) in done:
+#                continue
+#            else:
+#                done.append((dv_col,iva_col))
+#            iva = data[iva_col]
+#            for ivb_col in ivs:
+#                if ivb_col == iva_col or ivb_col == dv_col:
+#                    continue
+#                if (dv_col,ivb_col,iva_col) in done:
+#                    continue
+#                else:
+#                    done.append((dv_col,iva_col,ivb_col))
+#                ivb = data[ivb_col]
+#                inter,changer = multivariate_test(dv,iva,ivb,data)
+#                if inter:
+#                    assos = '>>>>Interaction: %s      vs     %s    on    %s <<<<<<<<<'%(
+#                            col_dir[iva_col], col_dir[ivb_col], col_dir[dv_col])
+#                    if verbose:
+#                        print('\n',assoc)
+#                    else:
+#                        associations.append(assos)
+#                if changer:
+#                    assos = '*****Change: %s     vs     %s     on     %s'%(
+#                             col_dir[iva_col],col_dir[ivb_col],col_dir[dv_col])
+#                    if verbose:
+#                        print('\n',assoc)
+#                    else:
+#                        associations.append(assos)
+#	if not verbose:
+#		return(associations)
+#
+#
+#def prep_frame(tstcols,data):
+#    
+#    # make new frame of only tstcols
+#    rdf = deepcopy(data[tstcols])
+#    
+#    # fix headers
+#    ncols = []
+#    col_dir = {}
+#    for col in tstcols:
+#        ncols.append(col[:14])
+#        col_dir.update({col[:14]:col})
+#    rdf.columns = ncols
+#    
+#    # find feasable dependent variables
+#    dvs = []
+#    for col in rdf.columns:
+#        if rdf[col].dtype == 'float64' and len(rdf[col].unique()) > 4:
+#            dvs.append(col)
+#            
+#    # find feasible independent variable (in case user specifies)
+#    ivs = []
+#    for col in rdf.columns:
+#        if rdf[col].dtype == 'O' and len(rdf[col].unique()) < 4:
+#            ivs.append(col)
+#
+#    # encode categorical variables
+#    for col in rdf.columns:
+#        if rdf[col].dtype == 'O':
+#            rdf[col] = us.encode(rdf[col]).astype(float)
+#    
+#    
+#    return rdf,dvs,ivs,col_dir
+#
+#def multivariate_test(dv,iva,ivb,data):
+#    
+#    inter=False
+#    changer=False
+#    
+#    tsta_p = smf.ols('dv ~ iva',data=data).fit().pvalues[1]
+#    tstb_p = smf.ols('dv ~ ivb',data=data).fit().pvalues[1]
+#    
+#    tstmv_ps = smf.ols('dv ~ iva + ivb',data=data).fit().pvalues
+#    
+#    if tsta_p > 0.05 and tstmv_ps[1] < 0.05:
+#        changer=True
+#    if tstb_p > 0.05 and tstmv_ps[2] < 0.05:
+#        changer = True
+#    
+#    tstint_ps = smf.ols('dv ~ iva * ivb',data=data).fit().pvalues[-1]
+#    if tstint_ps < 0.05:
+#        inter = True
+#    
+#    return inter,changer
+#
