@@ -422,7 +422,7 @@ def construct_output(in_list,out_type,out_sep):
 # an instruction for the user to change it manually. If 'remove', it should replace the value with
 # a np.nan. Finally, as with other functions, this function should have an evaluate vs apply argument.
 
-def simplify(col, tie='alert', mode='evaluate',in_words=None):
+def simplify(col, tie='alert', mode='evaluate',in_words=None,integate=False):
     '''
     input should be a pandas Series or list. Function will search through entries in series and''
     will make suggestions as to what changes can be made to better harmonize list entries. Function
@@ -433,6 +433,9 @@ def simplify(col, tie='alert', mode='evaluate',in_words=None):
     return the index of the suggested items. If mode set to apply, function will make the
     suggestions and return a pandas Series with suggestions made.
     In_words can be a list of words that the function uses as a reference for simplification 
+    
+    Integrate is for integration with other in-house software. However, it can
+    be used to a) eliminate printing output and b) return a dict of suggestions
     '''
     
     if tie != 'alert' and tie != 'remove':
@@ -447,6 +450,9 @@ def simplify(col, tie='alert', mode='evaluate',in_words=None):
     #col = deepcopy(pandas.Series(col))
     col = deepcopy(col)
     
+    if integrate:
+        ties = {}
+
     # initialize words
     if in_words:
         words=in_words
@@ -456,8 +462,7 @@ def simplify(col, tie='alert', mode='evaluate',in_words=None):
             if type(word) != str:
                 words.remove(words[x])
     
-    if mode == 'evaluate':
-        fail_inds = []
+    fail_inds = []
     
     for i,val in enumerate(col):
         
@@ -476,20 +481,25 @@ def simplify(col, tie='alert', mode='evaluate',in_words=None):
             continue
         elif len(suggestions) == 1: # if one found, suggest it
             if mode == 'evaluate':
-                print('suggestion found: perhaps replace %s at index %s with %s' %(val,i,suggestions[0]))
+                if not integrate:
+                    print('suggestion found: perhaps replace %s at index %s with %s' %(val,i,suggestions[0]))
                 fail_inds.append(i)
             else:
-                print('changing %s to %s'%(val,suggestions[0]))
+                if not integrate:
+                    print('changing %s to %s'%(val,suggestions[0]))
                 col[i] = suggestions[0]
                 
         else: # If there's a tie
             if tie == 'alert':
-                print('the following suggestions were made or %s at index %s'%(val,i))
-                for sug in suggestions:
-                    print(sug)
-                print('please select the best option and change manually.',
-                     'or rerun with tie = remove to set ties to NaN')
+                if not integrate:
+                    print('the following suggestions were made or %s at index %s'%(val,i))
+                    for sug in suggestions:
+                        print(sug)
+                    print('please select the best option and change manually.',
+                        'or rerun with tie = remove to set ties to NaN')
                 fail_inds.append(i)
+                if integrate:
+                    ties.update({val:suggestions})
             else:
                 print('tie found for %s.. setting to np.nan'%(val))
                 col[i] = np.nan
@@ -497,7 +507,10 @@ def simplify(col, tie='alert', mode='evaluate',in_words=None):
     if mode == 'evaluate':
         return fail_inds
     else:
-        return col
+        if integrate:
+            return col,ties
+        else:
+            return col
                 
 
 ## Part I -- Time Code       (Just a bit bumpy)
